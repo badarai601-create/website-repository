@@ -1,0 +1,8 @@
+dispatch:
+  # Rule 1: Routes all traffic from the naked domain (badarai.com) to the 'call-automation-fe' service.
+  - url: "badarai.com/*"
+    service: call-automation-frontend
+
+  # Rule 2: Routes all traffic from the 'www' subdomain (www.badarai.com) to the 'call-automation-fe' service.
+  - url: "www.badarai.com/*"
+    service: call-automation-frontend
