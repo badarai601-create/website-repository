@@ -1,0 +1,111 @@
+name: Deploy to GCP
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+  pull_request:
+    branches:
+      - main
+      - staging
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20"
+
+      - name: Clear npm cache
+        run: npm cache clean --force
+
+      - name: Remove node_modules and install dependencies
+        run: |
+          rm -rf node_modules
+          npm install
+
+      - name: Build Next.js app
+        run: npm run build
+
+      - name: Verify build output
+        run: |
+          echo "Checking if .next directory exists..."
+          ls -la .next/
+          echo "Build verification completed"
+
+      - name: Create temp folder
+        run: mkdir temp_folder
+
+      - name: Copy build output to temp folder
+        run: |
+          ls -la .next/ || echo "Build failed - .next directory not found"
+          cp -r .next/ temp_folder/.next/
+
+      - name: Copy app.yaml to temp folder
+        run: cp app.yaml temp_folder/app.yaml
+
+      - name: Copy dispatch.yaml to temp folder
+        run: cp dispatch.yaml temp_folder/dispatch.yaml
+
+      - name: Copy .gcloudignore to temp folder
+        run: cp .gcloudignore temp_folder/.gcloudignore 2>/dev/null || true
+
+      - name: Copy package.json and package-lock.json to temp folder
+        run: |
+          cp package.json temp_folder/package.json
+          cp package-lock.json temp_folder/package-lock.json
+
+      - name: Copy Next.js config to temp folder
+        run: cp next.config.mjs temp_folder/next.config.mjs
+
+      - name: Copy public directory to temp folder
+        run: cp -r public/ temp_folder/public/
+
+      - name: Copy source code directories to temp folder
+        run: |
+          cp -r app/ temp_folder/app/
+          cp -r components/ temp_folder/components/
+          cp -r lib/ temp_folder/lib/
+          cp -r hooks/ temp_folder/hooks/
+          cp -r contexts/ temp_folder/contexts/
+          cp -r styles/ temp_folder/styles/ 2>/dev/null || true
+
+      - name: Copy configuration files to temp folder
+        run: |
+          cp tsconfig.json temp_folder/tsconfig.json
+          cp postcss.config.mjs temp_folder/postcss.config.mjs
+          cp components.json temp_folder/components.json 2>/dev/null || true
+          cp next-env.d.ts temp_folder/next-env.d.ts 2>/dev/null || true
+
+      - name: List contents of temp folder for verification
+        run: ls -l temp_folder/
+
+      - name: Google Cloud Auth
+        uses: "google-github-actions/auth@v2"
+        with:
+          credentials_json: "${{ secrets.GCP_SA_KEY }}"
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Set up Cloud SDK
+        uses: "google-github-actions/setup-gcloud@v2"
+
+      - name: Deploy app.yaml to Google App Engine
+        run: |
+          cd temp_folder
+          gcloud app deploy app.yaml --quiet
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_KEY }}
+          PORT: ${{ secrets.PORT }}
+
+      - name: Deploy dispatch.yaml to configure routing
+        run: |
+          cd temp_folder
+          gcloud app deploy dispatch.yaml --quiet
