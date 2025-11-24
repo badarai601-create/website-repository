@@ -1,5 +1,6 @@
 [build]
-  base = "call-automation-fe-main"
+  # If your Next.js app is in the repo root:
+  base = ""  
   command = "pnpm run build"
   publish = ".next"
 
