@@ -1,4 +1,4 @@
 [build]
   base = "call-automation-fe-main"
   command = "pnpm run build"
-  publish = "call-automation-fe-main/.next"
+  publish = ".next"
