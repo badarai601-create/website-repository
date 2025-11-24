@@ -1,4 +1,3 @@
-[build]
-  base = "call-automation-fe-main"
-  command = "pnpm run build"
-  publish = ".next"
+git add netlify.toml
+git commit -m "Fix netlify.toml syntax"
+git push origin main
